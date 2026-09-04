@@ -1,787 +1,888 @@
-(() => {
-  // Admin Credentials
-  const ADMIN_ID = 'Mayank';
-  const ADMIN_PASS = 'Mayank756';
+/* ================================
+   RESET
+================================ */
 
-  // Elements
-  const sidebarTitle = document.getElementById('sidebar-title');
-  const navLinks = document.getElementById('nav-links');
-  const mainContent = document.getElementById('main-content');
-  const sidebarFooter = document.getElementById('sidebar-footer');
-  const mainContainer = document.querySelector('.main-container');
+* {
+  box-sizing: border-box;
+}
 
-  // Data from localStorage
-  const loadData = (key) => {
-    const val = localStorage.getItem(key);
-    return val ? JSON.parse(val) : null;
-  };
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
 
-  const saveData = (key, val) => {
-    localStorage.setItem(key, JSON.stringify(val));
-  };
+  font-family:
+    'Segoe UI',
+    Tahoma,
+    Geneva,
+    Verdana,
+    sans-serif;
 
-  // Application state
-  let state = {
-    currentUser: null, // {type:'admin'|'student', id:string}
-    students: loadData('students') || [],
-    books: loadData('books') || [],
-    issuedBooks: loadData('issuedBooks') || []
-  };
+  background: #f0f4f8;
+  color: #222;
 
-  // Save/load current user
-  const saveCurrentUser = () => {
-    if (state.currentUser) {
-      localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
-    } else {
-      localStorage.removeItem('currentUser');
-    }
-  };
+  overflow-x: hidden;
+}
 
-  const loadCurrentUser = () => {
-    const user = localStorage.getItem('currentUser');
-    state.currentUser = user ? JSON.parse(user) : null;
-  };
+h1,
+h2,
+h3 {
+  margin: 0;
+}
 
-  // Navigation definitions
-  const navConfig = {
-    guest: [
-      { label: 'Admin Login', action: showAdminLogin },
-      { label: 'Student Login', action: showStudentLogin },
-      { label: 'Student Signup', action: showStudentSignup }
-    ],
+a {
+  text-decoration: none;
+  color: inherit;
+}
 
-    admin: [
-      { label: 'Dashboard', action: showAdminDashboard },
-      { label: 'Add Book', action: showAddBookForm },
-      { label: 'All Issued Books', action: showAllIssuedBooks },
-      { label: 'Students', action: showAllStudents },
-      { label: 'Logout', action: logout }
-    ],
+button {
+  cursor: pointer;
+}
 
-    student: [
-      { label: 'Browse Books', action: showStudentBrowse },
-      { label: 'My Issued Books', action: showStudentIssuedBooks },
-      { label: 'Logout', action: logout }
-    ]
-  };
 
-  // Render navigation links
-  function renderNav(role) {
-    navLinks.innerHTML = '';
+/* ================================
+   ANIMATIONS
+================================ */
 
-    navConfig[role].forEach(({ label, action }) => {
-      const li = document.createElement('li');
-      const btn = document.createElement('button');
+@keyframes fadeInUp {
 
-      btn.textContent = label;
-      btn.setAttribute('aria-label', label);
-
-      btn.onclick = () => {
-        setActiveNav(label);
-        action();
-      };
-
-      li.appendChild(btn);
-      navLinks.appendChild(li);
-    });
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
   }
 
-  // Mark active nav button
-  function setActiveNav(label) {
-    [...navLinks.children].forEach(li => {
-      const btn = li.querySelector('button');
-      btn.classList.toggle('active', btn.textContent === label);
-    });
+  to {
+    opacity: 1;
+    transform: none;
   }
 
-  // Update sidebar title
-  function updateSidebarTitle(text) {
-    sidebarTitle.textContent = text;
+}
+
+@keyframes fadeIn {
+
+  from {
+    opacity: 0;
   }
 
-  // Update footer info
-  function updateSidebarFooter() {
-    if (!state.currentUser) {
-      sidebarFooter.textContent = 'Not logged in';
-    } else {
-      const typeCapitalized =
-        state.currentUser.type.charAt(0).toUpperCase() +
-        state.currentUser.type.slice(1);
-
-      sidebarFooter.textContent =
-        `${typeCapitalized}: ${state.currentUser.id}`;
-    }
+  to {
+    opacity: 1;
   }
 
-  // Utility to format ISO date-time nicely
-  function formatDateTime(isoString) {
-    if (!isoString) return 'N/A';
+}
 
-    const d = new Date(isoString);
+.fadeInUp {
+  animation: fadeInUp 0.6s ease forwards;
+}
 
-    if (isNaN(d)) return 'Invalid date';
+.fadeIn {
+  animation: fadeIn 1s ease forwards;
+}
 
-    return d.toLocaleString();
+
+/* ================================
+   SIDE IMAGE PANEL
+================================ */
+
+.side-panel {
+
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: 320px;
+  height: 100vh;
+
+  background:
+    url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=80')
+    no-repeat center center / cover;
+
+  box-shadow:
+    2px 0 14px rgba(0,0,0,0.2);
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: flex-end;
+
+  padding: 2.5rem 2rem;
+
+  color: white;
+
+  user-select: none;
+
+  overflow: hidden;
+
+  z-index: 10;
+}
+
+.side-panel::before {
+
+  content: '';
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  background:
+    rgba(44,62,80,0.75);
+
+  z-index: 0;
+}
+
+.side-panel-content {
+
+  position: relative;
+
+  z-index: 1;
+
+  text-shadow:
+    0 2px 10px rgba(0,0,0,0.75);
+}
+
+.side-panel h1 {
+
+  font-size: 2.8rem;
+
+  font-weight: 900;
+
+  margin-bottom: 0.6rem;
+
+  letter-spacing: 1.7px;
+
+  line-height: 1.15;
+}
+
+.side-panel p {
+
+  font-weight: 500;
+
+  font-size: 1.2rem;
+
+  margin: 0;
+
+  opacity: 0.95;
+
+  max-width: 300px;
+}
+
+
+/* ================================
+   MAIN CONTAINER
+================================ */
+
+.main-container {
+
+  margin-left: 320px;
+
+  min-height: 100vh;
+
+  display: flex;
+
+  flex-direction: column;
+
+  background: #fff;
+
+  box-shadow:
+    -3px 0 18px rgba(0,0,0,0.07);
+}
+
+header {
+
+  background: #2c3e50;
+
+  color: white;
+
+  font-weight: 700;
+
+  font-size: 1.85rem;
+
+  padding: 1.4rem 3rem;
+
+  box-shadow:
+    0 1px 9px rgba(0,0,0,0.25);
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  text-align: center;
+}
+
+.content-area {
+
+  flex: 1;
+
+  display: flex;
+
+  min-width: 0;
+}
+
+
+/* ================================
+   SIDEBAR
+================================ */
+
+nav.sidebar {
+
+  width: 260px;
+
+  min-width: 260px;
+
+  background: #34495e;
+
+  color: white;
+
+  display: flex;
+
+  flex-direction: column;
+
+  padding: 1rem 0;
+
+  box-shadow:
+    2px 0 14px rgba(0,0,0,0.2);
+
+  z-index: 5;
+}
+
+nav.sidebar h2 {
+
+  text-align: center;
+
+  margin-bottom: 1.5rem;
+
+  font-weight: 900;
+
+  letter-spacing: 1.3px;
+
+  font-size: 1.3rem;
+
+  padding: 0 10px;
+}
+
+ul.nav-links {
+
+  list-style: none;
+
+  padding: 0;
+
+  margin: 0;
+
+  flex-grow: 1;
+
+  overflow-y: auto;
+}
+
+ul.nav-links li {
+
+  border-top:
+    1px solid #2c3e50;
+}
+
+ul.nav-links li button {
+
+  width: 100%;
+
+  background: none;
+
+  border: none;
+
+  color: white;
+
+  padding: 1rem 1.8rem;
+
+  font-size: 1.1rem;
+
+  text-align: left;
+
+  transition:
+    background-color 0.35s ease,
+    transform 0.22s ease;
+
+  font-weight: 600;
+
+  letter-spacing: 0.015em;
+}
+
+ul.nav-links li button:hover,
+ul.nav-links li button.active {
+
+  background: #2980b9;
+
+  transform:
+    translateX(8px);
+}
+
+.sidebar-footer {
+
+  text-align: center;
+
+  color: #bdc3c7;
+
+  padding: 1.1rem 1.5rem;
+
+  font-size: 0.9rem;
+
+  border-top:
+    1px solid #2c3e50;
+}
+
+
+/* ================================
+   MAIN CONTENT
+================================ */
+
+main.main-content {
+
+  flex: 1;
+
+  min-width: 0;
+
+  padding: 2.6rem 3rem;
+
+  overflow-x: auto;
+
+  overflow-y: auto;
+
+  position: relative;
+
+  font-size: 1rem;
+
+  color: #213040;
+}
+
+h2.section-title {
+
+  margin-bottom: 1.7rem;
+
+  letter-spacing: 0.07em;
+
+  font-weight: 700;
+
+  font-size: 1.85rem;
+
+  color: #34495e;
+}
+
+
+/* ================================
+   FORMS
+================================ */
+
+form {
+
+  width: 100%;
+
+  max-width: 520px;
+
+  margin: auto;
+}
+
+label {
+
+  display: block;
+
+  margin-bottom: 0.5rem;
+
+  font-weight: 700;
+
+  color: #34495e;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+select {
+
+  width: 100%;
+
+  padding: 0.7rem 0.85rem;
+
+  font-size: 1rem;
+
+  font-weight: 500;
+
+  border:
+    2px solid #bdc3c7;
+
+  border-radius: 6px;
+
+  margin-bottom: 1.35rem;
+
+  color: #34495e;
+
+  background: white;
+}
+
+input:focus,
+select:focus {
+
+  border-color: #2980b9;
+
+  outline: none;
+}
+
+button.primary {
+
+  background: #2980b9;
+
+  border: none;
+
+  color: white;
+
+  font-weight: 700;
+
+  padding: 0.75rem 1.3rem;
+
+  border-radius: 7px;
+
+  width: 100%;
+
+  font-size: 1.2rem;
+
+  letter-spacing: 0.08em;
+
+  box-shadow:
+    0 5px 14px rgba(41,128,185,0.6);
+}
+
+button.primary:hover {
+
+  background: #1f5f8b;
+}
+
+
+/* ================================
+   MESSAGE
+================================ */
+
+.message {
+
+  text-align: center;
+
+  font-weight: 600;
+
+  margin-top: 1.2rem;
+
+  color: #e74c3c;
+
+  min-height: 1.3rem;
+}
+
+.message.success {
+
+  color: #27ae60;
+}
+
+
+/* ================================
+   TABLE
+================================ */
+
+table {
+
+  border-collapse: collapse;
+
+  width: 100%;
+
+  min-width: 650px;
+
+  margin-top: 1.3rem;
+
+  font-size: 0.95rem;
+
+  background: white;
+
+  box-shadow:
+    0 0 7px rgba(0,0,0,0.1);
+
+  border-radius: 6px;
+
+  overflow: hidden;
+}
+
+th,
+td {
+
+  border-bottom:
+    1px solid #d1d9e6;
+
+  padding: 0.82rem 1.2rem;
+
+  text-align: left;
+
+  vertical-align: middle;
+
+  white-space: nowrap;
+}
+
+th {
+
+  background: #2980b9;
+
+  color: white;
+
+  font-weight: 700;
+
+  letter-spacing: 0.06em;
+}
+
+tr:nth-child(even) {
+
+  background: #f7faff;
+}
+
+tr:hover {
+
+  background: #dbe9fc;
+}
+
+
+/* ================================
+   BADGE
+================================ */
+
+.badge {
+
+  background: #27ae60;
+
+  color: white;
+
+  padding:
+    0.35em 0.75em;
+
+  border-radius: 16px;
+
+  font-weight: 700;
+
+  font-size: 0.93rem;
+}
+
+
+/* ================================
+   BUTTONS
+================================ */
+
+button.sm-btn {
+
+  padding:
+    0.44rem 0.8rem;
+
+  font-size: 0.95rem;
+
+  border-radius: 7px;
+
+  font-weight: 700;
+
+  color: white;
+
+  border: none;
+}
+
+button.btn-purchase {
+
+  background: #27ae60;
+}
+
+button.btn-purchase:hover {
+
+  background: #1c6d3f;
+}
+
+button.btn-submit-book {
+
+  background: #f39c12;
+}
+
+button.btn-submit-book:hover {
+
+  background: #b0700e;
+}
+
+button.btn-delete-book {
+
+  background: #c0392b;
+}
+
+button.btn-delete-book:hover {
+
+  background: #7a2316;
+}
+
+.btn-disabled {
+
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+/* ================================
+   TABLET
+================================ */
+
+@media screen and (max-width: 890px) {
+
+  .side-panel {
+
+    display: none;
   }
 
-  // Initial animations show main container after slight delay
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      mainContainer.style.opacity = '1';
-    }, 400);
-  });
+  .main-container {
 
-  // --- Views ---
+    margin-left: 0;
 
-  // Guest welcome screen
-  function showGuestView() {
-    updateSidebarTitle('Welcome');
-    updateSidebarFooter();
-    renderNav('guest');
-    setActiveNav(null);
-
-    mainContent.innerHTML = `
-      <p style="text-align:center; margin-top:3rem; font-size:1.05rem; color:#777;">
-        Please login or signup to use the system.
-      </p>`;
+    width: 100%;
   }
 
-  // Admin Login Form
-  function showAdminLogin() {
-    updateSidebarTitle('Admin Login');
-    updateSidebarFooter();
+  nav.sidebar {
 
-    mainContent.innerHTML = `
-      <h2 class="section-title">Admin Login</h2>
-      <form id="admin-login-form" autocomplete="off" aria-label="Admin login form">
-        <label for="admin-id">Admin ID</label>
-        <input type="text" id="admin-id" name="admin-id" required placeholder="Enter Admin ID" />
+    width: 220px;
 
-        <label for="admin-pass">Password</label>
-        <input type="password" id="admin-pass" name="admin-pass" required placeholder="Enter Password" />
-
-        <button class="primary" type="submit">Login</button>
-
-        <p class="message" id="admin-login-msg" role="alert" aria-live="assertive"></p>
-      </form>`;
-
-    renderNav('guest');
-    setActiveNav('Admin Login');
-
-    document.getElementById('admin-login-form').onsubmit = e => {
-      e.preventDefault();
-
-      const id = document.getElementById('admin-id').value.trim();
-      const pass = document.getElementById('admin-pass').value;
-      const msg = document.getElementById('admin-login-msg');
-
-      if (id === ADMIN_ID && pass === ADMIN_PASS) {
-        state.currentUser = { type: 'admin', id };
-        saveCurrentUser();
-        renderDashboard();
-      } else {
-        msg.textContent = 'Invalid admin credentials.';
-        msg.classList.add('message');
-      }
-    };
+    min-width: 220px;
   }
 
-  // Student Login Form
-  function showStudentLogin() {
-    updateSidebarTitle('Student Login');
-    updateSidebarFooter();
+  main.main-content {
 
-    mainContent.innerHTML = `
-      <h2 class="section-title">Student Login</h2>
-      <form id="student-login-form" autocomplete="off" aria-label="Student login form">
-        <label for="student-id">Student ID</label>
-        <input type="text" id="student-id" name="student-id" required placeholder="Enter Student ID" />
-
-        <label for="student-pass">Password</label>
-        <input type="password" id="student-pass" name="student-pass" required placeholder="Enter Password" />
-
-        <button class="primary" type="submit">Login</button>
-
-        <p class="message" id="login-msg" role="alert" aria-live="assertive"></p>
-      </form>`;
-
-    renderNav('guest');
-    setActiveNav('Student Login');
-
-    document.getElementById('student-login-form').onsubmit = e => {
-      e.preventDefault();
-
-      const id = document.getElementById('student-id').value.trim();
-      const pass = document.getElementById('student-pass').value;
-      const msg = document.getElementById('login-msg');
-
-      const student = state.students.find(
-        s => s.id === id && s.password === pass
-      );
-
-      if (student) {
-        state.currentUser = { type: 'student', id };
-        saveCurrentUser();
-        renderStudentHome();
-      } else {
-        msg.textContent = 'Invalid student credentials.';
-        msg.classList.add('message');
-      }
-    };
+    padding: 2rem;
   }
 
-  // Student Signup Form with contact and class
-  function showStudentSignup() {
-    updateSidebarTitle('Student Signup');
-    updateSidebarFooter();
+}
 
-    mainContent.innerHTML = `
-      <h2 class="section-title">Student Signup</h2>
-      <form id="student-signup-form" autocomplete="off" aria-label="Student signup form">
 
-        <label for="signup-id">Student ID</label>
-        <input type="text" id="signup-id" name="signup-id" required placeholder="Create Student ID" />
+/* ================================
+   MOBILE
+================================ */
 
-        <label for="signup-contact">Contact</label>
-        <input type="text" id="signup-contact" name="signup-contact" required placeholder="Contact (Phone/Email)" />
+@media screen and (max-width: 600px) {
 
-        <label for="signup-class">Class</label>
-        <input type="text" id="signup-class" name="signup-class" required placeholder="Class (e.g. 10A)" />
+  html,
+  body {
 
-        <label for="signup-pass">Password</label>
-        <input type="password" id="signup-pass" name="signup-pass" required minlength="4" placeholder="Create Password" />
+    width: 100%;
 
-        <button class="primary" type="submit">Signup</button>
-
-        <p class="message" id="signup-msg" role="alert" aria-live="assertive"></p>
-      </form>`;
-
-    renderNav('guest');
-    setActiveNav('Student Signup');
-
-    document.getElementById('student-signup-form').onsubmit = e => {
-      e.preventDefault();
-
-      const id = document.getElementById('signup-id').value.trim();
-      const contact = document.getElementById('signup-contact').value.trim();
-      const cls = document.getElementById('signup-class').value.trim();
-      const pass = document.getElementById('signup-pass').value;
-      const msg = document.getElementById('signup-msg');
-
-      if (!id || !contact || !cls || !pass) {
-        msg.textContent = 'Please fill all fields.';
-        return;
-      }
-
-      if (state.students.find(s => s.id === id)) {
-        msg.textContent = 'Student ID already exists.';
-        return;
-      }
-
-      state.students.push({
-        id,
-        contact,
-        class: cls,
-        password: pass
-      });
-
-      saveData('students', state.students);
-
-      msg.textContent = 'Signup successful! Redirecting to Login...';
-      msg.classList.add('message', 'success');
-
-      setTimeout(showStudentLogin, 2000);
-    };
+    overflow-x: hidden;
   }
 
-  // Admin dashboard with options
-  function renderDashboard() {
-    if (state.currentUser.type === 'admin') {
-      renderNav('admin');
-      updateSidebarFooter();
-      showAdminDashboard();
-    } else if (state.currentUser.type === 'student') {
-      renderNav('student');
-      updateSidebarFooter();
-      showStudentBrowse();
-    }
+  .main-container {
+
+    margin-left: 0;
+
+    width: 100%;
+
+    min-height: 100vh;
   }
 
-  // Admin Dashboard: List Books with delete option
-  function showAdminDashboard() {
-    updateSidebarTitle('Admin Dashboard');
-    updateSidebarFooter();
-    renderNav('admin');
-    setActiveNav('Dashboard');
+  header {
 
-    if (state.books.length === 0) {
-      mainContent.innerHTML = `
-        <h2 class="section-title">Admin Dashboard</h2>
-        <p>No books available. Use 'Add Book' from the sidebar.</p>`;
-      return;
-    }
+    width: 100%;
 
-    let html = `
-      <h2 class="section-title">Books in Library</h2>
-      <table aria-label="Books List Table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Author</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>`;
+    padding:
+      1rem 0.8rem;
 
-    state.books.forEach(book => {
-      html += `
-        <tr>
-          <td>${book.id}</td>
-          <td>${book.title}</td>
-          <td>${book.author}</td>
-          <td>${book.price.toFixed(2)} RS</td>
-          <td>${book.stock}</td>
-          <td>
-            <button class="btn-delete-book sm-btn"
-              data-id="${book.id}"
-              aria-label="Delete ${book.title}">
-              Delete
-            </button>
-          </td>
-        </tr>`;
-    });
+    font-size: 1.25rem;
 
-    html += `</tbody></table>`;
-
-    mainContent.innerHTML = html;
-
-    // Attach delete handlers
-    [...mainContent.querySelectorAll('.btn-delete-book')].forEach(btn => {
-      btn.onclick = e => {
-        const id = e.target.dataset.id;
-
-        if (confirm('Delete this book?')) {
-          state.books = state.books.filter(b => b.id !== id);
-          saveData('books', state.books);
-          showAdminDashboard();
-        }
-      };
-    });
+    line-height: 1.4;
   }
 
-  // Admin Add Book Form
-  function showAddBookForm() {
-    updateSidebarTitle('Add Book');
-    updateSidebarFooter();
+  .content-area {
 
-    mainContent.innerHTML = `
-      <h2 class="section-title">Add New Book</h2>
+    display: block;
 
-      <form id="add-book-form" autocomplete="off" aria-label="Add Book Form">
-
-        <label for="book-id">Book ID</label>
-        <input type="text" id="book-id" name="book-id" required placeholder="Unique Book Identifier" />
-
-        <label for="book-title">Title</label>
-        <input type="text" id="book-title" name="book-title" required placeholder="Book Title" />
-
-        <label for="book-author">Author</label>
-        <input type="text" id="book-author" name="book-author" required placeholder="Author Name" />
-
-        <label for="book-price">Price</label>
-        <input type="text" id="book-price" name="book-price" required placeholder="e.g. 9.99" pattern="^\\d+(\\.\\d{1,2})?$" />
-
-        <label for="book-stock">Stock</label>
-        <input type="number" id="book-stock" name="book-stock" required min="0" />
-
-        <button type="submit" class="primary">Add Book</button>
-
-        <p class="message" id="book-msg" role="alert" aria-live="assertive"></p>
-      </form>
-    `;
-
-    renderNav('admin');
-    setActiveNav('Add Book');
-
-    const form = document.getElementById('add-book-form');
-    const msg = document.getElementById('book-msg');
-
-    form.onsubmit = e => {
-      e.preventDefault();
-
-      const id = form['book-id'].value.trim();
-
-      if (state.books.find(b => b.id === id)) {
-        msg.textContent = 'Book ID already exists!';
-        return;
-      }
-
-      const title = form['book-title'].value.trim();
-      const author = form['book-author'].value.trim();
-      const price = parseFloat(form['book-price'].value);
-      const stock = parseInt(form['book-stock'].value);
-
-      if (
-        isNaN(price) ||
-        price < 0 ||
-        isNaN(stock) ||
-        stock < 0
-      ) {
-        msg.textContent = 'Invalid price or stock values!';
-        return;
-      }
-
-      state.books.push({
-        id,
-        title,
-        author,
-        price,
-        stock
-      });
-
-      saveData('books', state.books);
-
-      msg.textContent = 'Book added successfully!';
-      msg.classList.add('success');
-
-      form.reset();
-
-      setTimeout(showAdminDashboard, 1800);
-    };
+    width: 100%;
   }
 
-  // Admin View all issued book records including student details
-  function showAllIssuedBooks() {
-    updateSidebarTitle('Issued Book Records');
-    updateSidebarFooter();
-    renderNav('admin');
-    setActiveNav('All Issued Books');
+  nav.sidebar {
 
-    if (state.issuedBooks.length === 0) {
-      mainContent.innerHTML = `
-        <h2 class="section-title">Issued Book Records</h2>
-        <p>No issued book records found.</p>
-      `;
-      return;
-    }
+    width: 100%;
 
-    let html = `
-      <h2 class="section-title">Issued Book Records</h2>
+    min-width: 100%;
 
-      <table aria-label="All issued books record">
-        <thead>
-          <tr>
-            <th>Book Title</th>
-            <th>Student ID</th>
-            <th>Contact</th>
-            <th>Class</th>
-            <th>Issued On</th>
-            <th>Submitted On</th>
-          </tr>
-        </thead>
-        <tbody>`;
+    height: auto;
 
-    state.issuedBooks.forEach(record => {
-      const book =
-        state.books.find(b => b.id === record.bookId) ||
-        { title: 'Unknown' };
+    padding: 0;
 
-      const student =
-        state.students.find(s => s.id === record.studentId) ||
-        { contact: '-', class: '-' };
+    display: block;
 
-      html += `
-        <tr>
-          <td>${book.title}</td>
-          <td>${record.studentId}</td>
-          <td>${student.contact}</td>
-          <td>${student.class}</td>
-          <td>${formatDateTime(record.issueDate)}</td>
-          <td>${record.returnDate ? formatDateTime(record.returnDate) : '-'}</td>
-        </tr>`;
-    });
-
-    html += `</tbody></table>`;
-
-    mainContent.innerHTML = html;
+    box-shadow: none;
   }
 
-  // Admin View all students list with details
-  function showAllStudents() {
-    updateSidebarTitle('Students List');
-    updateSidebarFooter();
-    renderNav('admin');
-    setActiveNav('Students');
+  nav.sidebar h2 {
 
-    if (state.students.length === 0) {
-      mainContent.innerHTML = `
-        <h2 class="section-title">Students</h2>
-        <p>No students registered yet.</p>
-      `;
-      return;
-    }
+    display: block;
 
-    let html = `
-      <h2 class="section-title">Students</h2>
+    padding:
+      0.8rem 0.5rem;
 
-      <table aria-label="All Students">
-        <thead>
-          <tr>
-            <th>Student ID</th>
-            <th>Contact</th>
-            <th>Class</th>
-          </tr>
-        </thead>
-        <tbody>`;
+    margin: 0;
 
-    state.students.forEach(student => {
-      html += `
-        <tr>
-          <td>${student.id}</td>
-          <td>${student.contact}</td>
-          <td>${student.class}</td>
-        </tr>`;
-    });
+    font-size: 1.1rem;
 
-    html += `</tbody></table>`;
-
-    mainContent.innerHTML = html;
+    background: #2c3e50;
   }
 
-  // Student Home: Browse books to purchase
-  function showStudentBrowse() {
-    updateSidebarTitle('Browse Books');
-    updateSidebarFooter();
-    renderNav('student');
-    setActiveNav('Browse Books');
+  ul.nav-links {
 
-    if (state.books.length === 0) {
-      mainContent.innerHTML = `
-        <h2 class="section-title">Browse Books</h2>
-        <p>No books available right now.</p>`;
-      return;
-    }
+    width: 100%;
 
-    let html = `
-      <h2 class="section-title">Browse Books</h2>
+    display: flex;
 
-      <table aria-label="Available books">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Author</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>`;
+    flex-direction: row;
 
-    state.books.forEach(book => {
-      const disabled = book.stock <= 0 ? 'btn-disabled' : '';
+    gap: 0;
 
-      html += `
-        <tr>
-          <td>${book.title}</td>
-          <td>${book.author}</td>
-          <td>${book.price.toFixed(2)} RS</td>
-          <td>${book.stock}</td>
-          <td>
-            <button
-              class="btn-purchase sm-btn ${disabled}"
-              data-id="${book.id}"
-              ${disabled ? 'disabled' : ''}>
-              Purchase
-            </button>
-          </td>
-        </tr>`;
-    });
+    overflow-x: auto;
 
-    html += `</tbody></table>`;
+    overflow-y: hidden;
 
-    mainContent.innerHTML = html;
-
-    mainContent.querySelectorAll('.btn-purchase').forEach(btn => {
-      btn.onclick = () => {
-        purchaseBook(btn.dataset.id);
-      };
-    });
+    -webkit-overflow-scrolling: touch;
   }
 
-  // Purchase book function
-  function purchaseBook(bookId) {
-    const book = state.books.find(b => b.id === bookId);
+  ul.nav-links li {
 
-    if (!book || book.stock <= 0) {
-      alert('Book not currently available.');
-      return;
-    }
+    flex: 0 0 auto;
 
-    // Check if already issued and not returned
-    const issued = state.issuedBooks.find(
-      rec =>
-        rec.bookId === bookId &&
-        rec.studentId === state.currentUser.id &&
-        !rec.returnDate
-    );
-
-    if (issued) {
-      alert(
-        'You already have this book issued. Submit it before purchasing again.'
-      );
-      return;
-    }
-
-    book.stock--;
-
-    state.issuedBooks.push({
-      bookId: book.id,
-      studentId: state.currentUser.id,
-      issueDate: new Date().toISOString(),
-      returnDate: null
-    });
-
-    saveData('books', state.books);
-    saveData('issuedBooks', state.issuedBooks);
-
-    alert(`Successfully purchased "${book.title}".`);
-
-    showStudentBrowse();
+    border-top: none;
   }
 
-  // Student issued books page
-  function showStudentIssuedBooks() {
-    updateSidebarTitle('My Issued Books');
-    updateSidebarFooter();
-    renderNav('student');
-    setActiveNav('My Issued Books');
+  ul.nav-links li button {
 
-    const issued = state.issuedBooks.filter(
-      rec => rec.studentId === state.currentUser.id
-    );
+    width: auto;
 
-    if (issued.length === 0) {
-      mainContent.innerHTML = `
-        <h2 class="section-title">My Issued Books</h2>
-        <p>You have no issued books.</p>`;
-      return;
-    }
+    min-width: max-content;
 
-    let html = `
-      <h2 class="section-title">My Issued Books</h2>
+    padding:
+      0.8rem 1rem;
 
-      <table aria-label="My issued books">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Issued On</th>
-            <th>Submitted On</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>`;
+    font-size: 0.9rem;
 
-    issued.forEach(rec => {
-      const book =
-        state.books.find(b => b.id === rec.bookId) ||
-        { title: 'Unknown' };
+    text-align: center;
 
-      const canSubmit = !rec.returnDate;
-
-      html += `
-        <tr>
-          <td>${book.title}</td>
-          <td>${formatDateTime(rec.issueDate)}</td>
-          <td>${rec.returnDate ? formatDateTime(rec.returnDate) : '-'}</td>
-          <td>
-            ${
-              canSubmit
-                ? `<button class="btn-submit-book sm-btn" data-id="${book.id}">Submit</button>`
-                : `<span class="badge">Returned</span>`
-            }
-          </td>
-        </tr>`;
-    });
-
-    html += `</tbody></table>`;
-
-    mainContent.innerHTML = html;
-
-    mainContent.querySelectorAll('.btn-submit-book').forEach(btn => {
-      btn.onclick = () => {
-        submitBook(btn.dataset.id);
-      };
-    });
+    white-space: nowrap;
   }
 
-  // Submit book function
-  function submitBook(bookId) {
-    const recIndex = state.issuedBooks.findIndex(
-      rec =>
-        rec.bookId === bookId &&
-        rec.studentId === state.currentUser.id &&
-        !rec.returnDate
-    );
+  ul.nav-links li button:hover,
+  ul.nav-links li button.active {
 
-    if (recIndex < 0) {
-      alert('No issued record found to submit.');
-      return;
-    }
-
-    state.issuedBooks[recIndex].returnDate =
-      new Date().toISOString();
-
-    const book = state.books.find(b => b.id === bookId);
-
-    if (book) book.stock++;
-
-    saveData('issuedBooks', state.issuedBooks);
-    saveData('books', state.books);
-
-    alert('Book submitted successfully.');
-
-    showStudentIssuedBooks();
+    transform: none;
   }
 
-  // Logout function
-  function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-      state.currentUser = null;
-      saveCurrentUser();
-      showGuestView();
-    }
+  .sidebar-footer {
+
+    padding: 0.5rem;
+
+    font-size: 0.8rem;
+
+    background: #34495e;
   }
 
-  // Render UI after login
-  function renderDashboard() {
-    if (state.currentUser.type === 'admin') {
-      renderNav('admin');
-      updateSidebarFooter();
-      showAdminDashboard();
-    } else if (state.currentUser.type === 'student') {
-      renderNav('student');
-      updateSidebarFooter();
-      showStudentBrowse();
-    }
+  main.main-content {
+
+    width: 100%;
+
+    padding:
+      1.2rem 0.9rem;
+
+    overflow-x: auto;
   }
 
-  // Render student homepage
-  function renderStudentHome() {
-    renderDashboard();
+  h2.section-title {
+
+    font-size: 1.4rem;
+
+    margin-bottom: 1.2rem;
   }
 
-  // Initialization
-  loadCurrentUser();
+  form {
 
-  if (state.currentUser) {
-    mainContainer.style.opacity = '1';
-    renderDashboard();
-  } else {
-    mainContainer.style.opacity = '1';
-    showGuestView();
+    width: 100%;
+
+    max-width: 100%;
   }
 
-})();
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  select {
+
+    font-size: 16px;
+
+    padding: 0.75rem;
+
+    margin-bottom: 1rem;
+  }
+
+  button.primary {
+
+    font-size: 1rem;
+
+    padding: 0.8rem;
+  }
+
+  table {
+
+    min-width: 650px;
+
+    font-size: 0.85rem;
+  }
+
+  th,
+  td {
+
+    padding:
+      0.65rem 0.8rem;
+  }
+
+}
+
+
+/* ================================
+   VERY SMALL PHONE
+================================ */
+
+@media screen and (max-width: 380px) {
+
+  header {
+
+    font-size: 1.1rem;
+
+    padding:
+      0.9rem 0.5rem;
+  }
+
+  nav.sidebar h2 {
+
+    font-size: 1rem;
+  }
+
+  ul.nav-links li button {
+
+    padding:
+      0.7rem 0.8rem;
+
+    font-size: 0.82rem;
+  }
+
+  main.main-content {
+
+    padding:
+      1rem 0.7rem;
+  }
+
+  h2.section-title {
+
+    font-size: 1.25rem;
+  }
+
+}
