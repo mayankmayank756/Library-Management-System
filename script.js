@@ -1,888 +1,1980 @@
-/* ================================
-   RESET
-================================ */
+(() => {
 
-* {
-  box-sizing: border-box;
-}
+  /* ================================
+     ADMIN LOGIN DETAILS
+  ================================= */
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100%;
-
-  font-family:
-    'Segoe UI',
-    Tahoma,
-    Geneva,
-    Verdana,
-    sans-serif;
-
-  background: #f0f4f8;
-  color: #222;
-
-  overflow-x: hidden;
-}
-
-h1,
-h2,
-h3 {
-  margin: 0;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-button {
-  cursor: pointer;
-}
+  const ADMIN_ID = 'Mayank';
+  const ADMIN_PASS = 'Mayank756';
 
 
-/* ================================
-   ANIMATIONS
-================================ */
+  /* ================================
+     HTML ELEMENTS
+  ================================= */
 
-@keyframes fadeInUp {
+  const sidebarTitle =
+    document.getElementById('sidebar-title');
 
-  from {
-    opacity: 0;
-    transform: translate3d(0, 20px, 0);
+  const navLinks =
+    document.getElementById('nav-links');
+
+  const mainContent =
+    document.getElementById('main-content');
+
+  const sidebarFooter =
+    document.getElementById('sidebar-footer');
+
+
+  /* ================================
+     LOCAL STORAGE
+  ================================= */
+
+  const loadData = (key) => {
+
+    const value =
+      localStorage.getItem(key);
+
+    return value
+      ? JSON.parse(value)
+      : null;
+  };
+
+
+  const saveData = (key, value) => {
+
+    localStorage.setItem(
+      key,
+      JSON.stringify(value)
+    );
+  };
+
+
+  /* ================================
+     APPLICATION STATE
+  ================================= */
+
+  let state = {
+
+    currentUser: null,
+
+    students:
+      loadData('students') || [],
+
+    books:
+      loadData('books') || [],
+
+    issuedBooks:
+      loadData('issuedBooks') || []
+
+  };
+
+
+  /* ================================
+     CURRENT USER
+  ================================= */
+
+  const saveCurrentUser = () => {
+
+    if (state.currentUser) {
+
+      localStorage.setItem(
+        'currentUser',
+        JSON.stringify(state.currentUser)
+      );
+
+    } else {
+
+      localStorage.removeItem(
+        'currentUser'
+      );
+
+    }
+  };
+
+
+  const loadCurrentUser = () => {
+
+    const user =
+      localStorage.getItem(
+        'currentUser'
+      );
+
+    state.currentUser =
+      user
+        ? JSON.parse(user)
+        : null;
+  };
+
+
+  /* ================================
+     NAVIGATION
+  ================================= */
+
+  const navConfig = {
+
+    guest: [
+
+      {
+        label: 'Admin Login',
+        action: showAdminLogin
+      },
+
+      {
+        label: 'Student Login',
+        action: showStudentLogin
+      },
+
+      {
+        label: 'Student Signup',
+        action: showStudentSignup
+      }
+
+    ],
+
+    admin: [
+
+      {
+        label: 'Dashboard',
+        action: showAdminDashboard
+      },
+
+      {
+        label: 'Add Book',
+        action: showAddBookForm
+      },
+
+      {
+        label: 'All Issued Books',
+        action: showAllIssuedBooks
+      },
+
+      {
+        label: 'Students',
+        action: showAllStudents
+      },
+
+      {
+        label: 'Logout',
+        action: logout
+      }
+
+    ],
+
+    student: [
+
+      {
+        label: 'Browse Books',
+        action: showStudentBrowse
+      },
+
+      {
+        label: 'My Issued Books',
+        action: showStudentIssuedBooks
+      },
+
+      {
+        label: 'Logout',
+        action: logout
+      }
+
+    ]
+
+  };
+
+
+  /* ================================
+     RENDER NAVIGATION
+  ================================= */
+
+  function renderNav(role) {
+
+    navLinks.innerHTML = '';
+
+    navConfig[role].forEach(
+      ({ label, action }) => {
+
+        const li =
+          document.createElement('li');
+
+        const button =
+          document.createElement('button');
+
+        button.textContent = label;
+
+        button.onclick = () => {
+
+          setActiveNav(label);
+
+          action();
+
+        };
+
+        li.appendChild(button);
+
+        navLinks.appendChild(li);
+
+      }
+    );
   }
 
-  to {
-    opacity: 1;
-    transform: none;
+
+  function setActiveNav(label) {
+
+    [
+      ...navLinks.children
+    ].forEach(li => {
+
+      const button =
+        li.querySelector('button');
+
+      button.classList.toggle(
+        'active',
+        button.textContent === label
+      );
+
+    });
   }
 
-}
 
-@keyframes fadeIn {
+  function updateSidebarTitle(text) {
 
-  from {
-    opacity: 0;
+    sidebarTitle.textContent = text;
+
   }
 
-  to {
-    opacity: 1;
+
+  function updateSidebarFooter() {
+
+    if (!state.currentUser) {
+
+      sidebarFooter.textContent =
+        'Not logged in';
+
+      return;
+    }
+
+    const type =
+      state.currentUser.type
+        .charAt(0)
+        .toUpperCase()
+      +
+      state.currentUser.type.slice(1);
+
+    sidebarFooter.textContent =
+      `${type}: ${state.currentUser.id}`;
   }
 
-}
 
-.fadeInUp {
-  animation: fadeInUp 0.6s ease forwards;
-}
+  /* ================================
+     DATE FORMAT
+  ================================= */
 
-.fadeIn {
-  animation: fadeIn 1s ease forwards;
-}
+  function formatDateTime(dateString) {
 
+    if (!dateString) {
 
-/* ================================
-   SIDE IMAGE PANEL
-================================ */
+      return 'N/A';
+    }
 
-.side-panel {
+    const date =
+      new Date(dateString);
 
-  position: fixed;
+    if (isNaN(date)) {
 
-  top: 0;
-  left: 0;
+      return 'Invalid date';
+    }
 
-  width: 320px;
-  height: 100vh;
-
-  background:
-    url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=80')
-    no-repeat center center / cover;
-
-  box-shadow:
-    2px 0 14px rgba(0,0,0,0.2);
-
-  display: flex;
-
-  flex-direction: column;
-
-  justify-content: flex-end;
-
-  padding: 2.5rem 2rem;
-
-  color: white;
-
-  user-select: none;
-
-  overflow: hidden;
-
-  z-index: 10;
-}
-
-.side-panel::before {
-
-  content: '';
-
-  position: absolute;
-
-  top: 0;
-  left: 0;
-
-  width: 100%;
-  height: 100%;
-
-  background:
-    rgba(44,62,80,0.75);
-
-  z-index: 0;
-}
-
-.side-panel-content {
-
-  position: relative;
-
-  z-index: 1;
-
-  text-shadow:
-    0 2px 10px rgba(0,0,0,0.75);
-}
-
-.side-panel h1 {
-
-  font-size: 2.8rem;
-
-  font-weight: 900;
-
-  margin-bottom: 0.6rem;
-
-  letter-spacing: 1.7px;
-
-  line-height: 1.15;
-}
-
-.side-panel p {
-
-  font-weight: 500;
-
-  font-size: 1.2rem;
-
-  margin: 0;
-
-  opacity: 0.95;
-
-  max-width: 300px;
-}
-
-
-/* ================================
-   MAIN CONTAINER
-================================ */
-
-.main-container {
-
-  margin-left: 320px;
-
-  min-height: 100vh;
-
-  display: flex;
-
-  flex-direction: column;
-
-  background: #fff;
-
-  box-shadow:
-    -3px 0 18px rgba(0,0,0,0.07);
-}
-
-header {
-
-  background: #2c3e50;
-
-  color: white;
-
-  font-weight: 700;
-
-  font-size: 1.85rem;
-
-  padding: 1.4rem 3rem;
-
-  box-shadow:
-    0 1px 9px rgba(0,0,0,0.25);
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  text-align: center;
-}
-
-.content-area {
-
-  flex: 1;
-
-  display: flex;
-
-  min-width: 0;
-}
-
-
-/* ================================
-   SIDEBAR
-================================ */
-
-nav.sidebar {
-
-  width: 260px;
-
-  min-width: 260px;
-
-  background: #34495e;
-
-  color: white;
-
-  display: flex;
-
-  flex-direction: column;
-
-  padding: 1rem 0;
-
-  box-shadow:
-    2px 0 14px rgba(0,0,0,0.2);
-
-  z-index: 5;
-}
-
-nav.sidebar h2 {
-
-  text-align: center;
-
-  margin-bottom: 1.5rem;
-
-  font-weight: 900;
-
-  letter-spacing: 1.3px;
-
-  font-size: 1.3rem;
-
-  padding: 0 10px;
-}
-
-ul.nav-links {
-
-  list-style: none;
-
-  padding: 0;
-
-  margin: 0;
-
-  flex-grow: 1;
-
-  overflow-y: auto;
-}
-
-ul.nav-links li {
-
-  border-top:
-    1px solid #2c3e50;
-}
-
-ul.nav-links li button {
-
-  width: 100%;
-
-  background: none;
-
-  border: none;
-
-  color: white;
-
-  padding: 1rem 1.8rem;
-
-  font-size: 1.1rem;
-
-  text-align: left;
-
-  transition:
-    background-color 0.35s ease,
-    transform 0.22s ease;
-
-  font-weight: 600;
-
-  letter-spacing: 0.015em;
-}
-
-ul.nav-links li button:hover,
-ul.nav-links li button.active {
-
-  background: #2980b9;
-
-  transform:
-    translateX(8px);
-}
-
-.sidebar-footer {
-
-  text-align: center;
-
-  color: #bdc3c7;
-
-  padding: 1.1rem 1.5rem;
-
-  font-size: 0.9rem;
-
-  border-top:
-    1px solid #2c3e50;
-}
-
-
-/* ================================
-   MAIN CONTENT
-================================ */
-
-main.main-content {
-
-  flex: 1;
-
-  min-width: 0;
-
-  padding: 2.6rem 3rem;
-
-  overflow-x: auto;
-
-  overflow-y: auto;
-
-  position: relative;
-
-  font-size: 1rem;
-
-  color: #213040;
-}
-
-h2.section-title {
-
-  margin-bottom: 1.7rem;
-
-  letter-spacing: 0.07em;
-
-  font-weight: 700;
-
-  font-size: 1.85rem;
-
-  color: #34495e;
-}
-
-
-/* ================================
-   FORMS
-================================ */
-
-form {
-
-  width: 100%;
-
-  max-width: 520px;
-
-  margin: auto;
-}
-
-label {
-
-  display: block;
-
-  margin-bottom: 0.5rem;
-
-  font-weight: 700;
-
-  color: #34495e;
-}
-
-input[type="text"],
-input[type="password"],
-input[type="email"],
-input[type="number"],
-select {
-
-  width: 100%;
-
-  padding: 0.7rem 0.85rem;
-
-  font-size: 1rem;
-
-  font-weight: 500;
-
-  border:
-    2px solid #bdc3c7;
-
-  border-radius: 6px;
-
-  margin-bottom: 1.35rem;
-
-  color: #34495e;
-
-  background: white;
-}
-
-input:focus,
-select:focus {
-
-  border-color: #2980b9;
-
-  outline: none;
-}
-
-button.primary {
-
-  background: #2980b9;
-
-  border: none;
-
-  color: white;
-
-  font-weight: 700;
-
-  padding: 0.75rem 1.3rem;
-
-  border-radius: 7px;
-
-  width: 100%;
-
-  font-size: 1.2rem;
-
-  letter-spacing: 0.08em;
-
-  box-shadow:
-    0 5px 14px rgba(41,128,185,0.6);
-}
-
-button.primary:hover {
-
-  background: #1f5f8b;
-}
-
-
-/* ================================
-   MESSAGE
-================================ */
-
-.message {
-
-  text-align: center;
-
-  font-weight: 600;
-
-  margin-top: 1.2rem;
-
-  color: #e74c3c;
-
-  min-height: 1.3rem;
-}
-
-.message.success {
-
-  color: #27ae60;
-}
-
-
-/* ================================
-   TABLE
-================================ */
-
-table {
-
-  border-collapse: collapse;
-
-  width: 100%;
-
-  min-width: 650px;
-
-  margin-top: 1.3rem;
-
-  font-size: 0.95rem;
-
-  background: white;
-
-  box-shadow:
-    0 0 7px rgba(0,0,0,0.1);
-
-  border-radius: 6px;
-
-  overflow: hidden;
-}
-
-th,
-td {
-
-  border-bottom:
-    1px solid #d1d9e6;
-
-  padding: 0.82rem 1.2rem;
-
-  text-align: left;
-
-  vertical-align: middle;
-
-  white-space: nowrap;
-}
-
-th {
-
-  background: #2980b9;
-
-  color: white;
-
-  font-weight: 700;
-
-  letter-spacing: 0.06em;
-}
-
-tr:nth-child(even) {
-
-  background: #f7faff;
-}
-
-tr:hover {
-
-  background: #dbe9fc;
-}
-
-
-/* ================================
-   BADGE
-================================ */
-
-.badge {
-
-  background: #27ae60;
-
-  color: white;
-
-  padding:
-    0.35em 0.75em;
-
-  border-radius: 16px;
-
-  font-weight: 700;
-
-  font-size: 0.93rem;
-}
-
-
-/* ================================
-   BUTTONS
-================================ */
-
-button.sm-btn {
-
-  padding:
-    0.44rem 0.8rem;
-
-  font-size: 0.95rem;
-
-  border-radius: 7px;
-
-  font-weight: 700;
-
-  color: white;
-
-  border: none;
-}
-
-button.btn-purchase {
-
-  background: #27ae60;
-}
-
-button.btn-purchase:hover {
-
-  background: #1c6d3f;
-}
-
-button.btn-submit-book {
-
-  background: #f39c12;
-}
-
-button.btn-submit-book:hover {
-
-  background: #b0700e;
-}
-
-button.btn-delete-book {
-
-  background: #c0392b;
-}
-
-button.btn-delete-book:hover {
-
-  background: #7a2316;
-}
-
-.btn-disabled {
-
-  opacity: 0.5;
-
-  cursor: not-allowed;
-}
-
-
-/* ================================
-   TABLET
-================================ */
-
-@media screen and (max-width: 890px) {
-
-  .side-panel {
-
-    display: none;
+    return date.toLocaleString();
   }
 
-  .main-container {
 
-    margin-left: 0;
+  /* ================================
+     GUEST VIEW
+  ================================= */
 
-    width: 100%;
+  function showGuestView() {
+
+    updateSidebarTitle(
+      'Welcome'
+    );
+
+    updateSidebarFooter();
+
+    renderNav('guest');
+
+    mainContent.innerHTML = `
+
+      <p style="
+        text-align:center;
+        margin-top:3rem;
+        font-size:1.05rem;
+        color:#777;
+      ">
+
+        Please login or signup
+        to use the system.
+
+      </p>
+
+    `;
+
   }
 
-  nav.sidebar {
 
-    width: 220px;
+  /* ================================
+     ADMIN LOGIN
+  ================================= */
 
-    min-width: 220px;
+  function showAdminLogin() {
+
+    updateSidebarTitle(
+      'Admin Login'
+    );
+
+    updateSidebarFooter();
+
+    renderNav('guest');
+
+    setActiveNav(
+      'Admin Login'
+    );
+
+    mainContent.innerHTML = `
+
+      <h2 class="section-title">
+        Admin Login
+      </h2>
+
+      <form
+        id="admin-login-form"
+        autocomplete="off">
+
+        <label for="admin-id">
+          Admin ID
+        </label>
+
+        <input
+          type="text"
+          id="admin-id"
+          required
+          placeholder="Enter Admin ID"
+        >
+
+        <label for="admin-pass">
+          Password
+        </label>
+
+        <input
+          type="password"
+          id="admin-pass"
+          required
+          placeholder="Enter Password"
+        >
+
+        <button
+          class="primary"
+          type="submit">
+
+          Login
+
+        </button>
+
+        <p
+          class="message"
+          id="admin-login-msg">
+        </p>
+
+      </form>
+
+    `;
+
+
+    document
+      .getElementById(
+        'admin-login-form'
+      )
+      .onsubmit = e => {
+
+        e.preventDefault();
+
+        const id =
+          document
+            .getElementById('admin-id')
+            .value
+            .trim();
+
+        const password =
+          document
+            .getElementById('admin-pass')
+            .value;
+
+        const message =
+          document
+            .getElementById(
+              'admin-login-msg'
+            );
+
+
+        if (
+          id === ADMIN_ID &&
+          password === ADMIN_PASS
+        ) {
+
+          state.currentUser = {
+
+            type: 'admin',
+
+            id: id
+
+          };
+
+          saveCurrentUser();
+
+          renderDashboard();
+
+        } else {
+
+          message.textContent =
+            'Invalid admin credentials.';
+
+        }
+
+      };
+
   }
 
-  main.main-content {
 
-    padding: 2rem;
+  /* ================================
+     STUDENT LOGIN
+  ================================= */
+
+  function showStudentLogin() {
+
+    updateSidebarTitle(
+      'Student Login'
+    );
+
+    updateSidebarFooter();
+
+    renderNav('guest');
+
+    setActiveNav(
+      'Student Login'
+    );
+
+    mainContent.innerHTML = `
+
+      <h2 class="section-title">
+        Student Login
+      </h2>
+
+      <form
+        id="student-login-form"
+        autocomplete="off">
+
+        <label>
+          Student ID
+        </label>
+
+        <input
+          type="text"
+          id="student-id"
+          required
+          placeholder="Enter Student ID"
+        >
+
+        <label>
+          Password
+        </label>
+
+        <input
+          type="password"
+          id="student-pass"
+          required
+          placeholder="Enter Password"
+        >
+
+        <button
+          class="primary"
+          type="submit">
+
+          Login
+
+        </button>
+
+        <p
+          class="message"
+          id="login-msg">
+        </p>
+
+      </form>
+
+    `;
+
+
+    document
+      .getElementById(
+        'student-login-form'
+      )
+      .onsubmit = e => {
+
+        e.preventDefault();
+
+        const id =
+          document
+            .getElementById(
+              'student-id'
+            )
+            .value
+            .trim();
+
+        const password =
+          document
+            .getElementById(
+              'student-pass'
+            )
+            .value;
+
+        const message =
+          document
+            .getElementById(
+              'login-msg'
+            );
+
+
+        const student =
+          state.students.find(
+            student =>
+              student.id === id &&
+              student.password === password
+          );
+
+
+        if (student) {
+
+          state.currentUser = {
+
+            type: 'student',
+
+            id: id
+
+          };
+
+          saveCurrentUser();
+
+          renderDashboard();
+
+        } else {
+
+          message.textContent =
+            'Invalid student credentials.';
+
+        }
+
+      };
+
   }
 
-}
+
+  /* ================================
+     STUDENT SIGNUP
+  ================================= */
+
+  function showStudentSignup() {
+
+    updateSidebarTitle(
+      'Student Signup'
+    );
+
+    updateSidebarFooter();
+
+    renderNav('guest');
+
+    setActiveNav(
+      'Student Signup'
+    );
 
 
-/* ================================
-   MOBILE
-================================ */
+    mainContent.innerHTML = `
 
-@media screen and (max-width: 600px) {
+      <h2 class="section-title">
+        Student Signup
+      </h2>
 
-  html,
-  body {
+      <form
+        id="student-signup-form"
+        autocomplete="off">
 
-    width: 100%;
+        <label>
+          Student ID
+        </label>
 
-    overflow-x: hidden;
+        <input
+          type="text"
+          id="signup-id"
+          required
+          placeholder="Create Student ID"
+        >
+
+        <label>
+          Contact
+        </label>
+
+        <input
+          type="text"
+          id="signup-contact"
+          required
+          placeholder="Contact"
+        >
+
+        <label>
+          Class
+        </label>
+
+        <input
+          type="text"
+          id="signup-class"
+          required
+          placeholder="Class"
+        >
+
+        <label>
+          Password
+        </label>
+
+        <input
+          type="password"
+          id="signup-pass"
+          required
+          minlength="4"
+          placeholder="Create Password"
+        >
+
+        <button
+          class="primary"
+          type="submit">
+
+          Signup
+
+        </button>
+
+        <p
+          class="message"
+          id="signup-msg">
+        </p>
+
+      </form>
+
+    `;
+
+
+    document
+      .getElementById(
+        'student-signup-form'
+      )
+      .onsubmit = e => {
+
+        e.preventDefault();
+
+        const id =
+          document
+            .getElementById(
+              'signup-id'
+            )
+            .value
+            .trim();
+
+        const contact =
+          document
+            .getElementById(
+              'signup-contact'
+            )
+            .value
+            .trim();
+
+        const className =
+          document
+            .getElementById(
+              'signup-class'
+            )
+            .value
+            .trim();
+
+        const password =
+          document
+            .getElementById(
+              'signup-pass'
+            )
+            .value;
+
+        const message =
+          document
+            .getElementById(
+              'signup-msg'
+            );
+
+
+        if (
+          !id ||
+          !contact ||
+          !className ||
+          !password
+        ) {
+
+          message.textContent =
+            'Please fill all fields.';
+
+          return;
+        }
+
+
+        if (
+          state.students.some(
+            student =>
+              student.id === id
+          )
+        ) {
+
+          message.textContent =
+            'Student ID already exists.';
+
+          return;
+        }
+
+
+        state.students.push({
+
+          id: id,
+
+          contact: contact,
+
+          class: className,
+
+          password: password
+
+        });
+
+
+        saveData(
+          'students',
+          state.students
+        );
+
+
+        message.textContent =
+          'Signup successful!';
+
+        message.classList.add(
+          'success'
+        );
+
+
+        setTimeout(
+          showStudentLogin,
+          1500
+        );
+
+      };
+
   }
 
-  .main-container {
 
-    margin-left: 0;
+  /* ================================
+     ADMIN DASHBOARD
+  ================================= */
 
-    width: 100%;
+  function showAdminDashboard() {
 
-    min-height: 100vh;
+    updateSidebarTitle(
+      'Admin Dashboard'
+    );
+
+    updateSidebarFooter();
+
+    renderNav('admin');
+
+    setActiveNav(
+      'Dashboard'
+    );
+
+
+    if (
+      state.books.length === 0
+    ) {
+
+      mainContent.innerHTML = `
+
+        <h2 class="section-title">
+          Admin Dashboard
+        </h2>
+
+        <p>
+          No books available.
+          Use "Add Book".
+        </p>
+
+      `;
+
+      return;
+    }
+
+
+    let html = `
+
+      <h2 class="section-title">
+        Books in Library
+      </h2>
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>ID</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Action</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+    `;
+
+
+    state.books.forEach(
+      book => {
+
+        html += `
+
+          <tr>
+
+            <td>${book.id}</td>
+
+            <td>${book.title}</td>
+
+            <td>${book.author}</td>
+
+            <td>
+              ${book.price.toFixed(2)} RS
+            </td>
+
+            <td>
+              ${book.stock}
+            </td>
+
+            <td>
+
+              <button
+                class="btn-delete-book sm-btn"
+                data-id="${book.id}">
+
+                Delete
+
+              </button>
+
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+    );
+
+
+    html += `
+
+        </tbody>
+
+      </table>
+
+    `;
+
+
+    mainContent.innerHTML =
+      html;
+
+
+    mainContent
+      .querySelectorAll(
+        '.btn-delete-book'
+      )
+      .forEach(button => {
+
+        button.onclick = () => {
+
+          const id =
+            button.dataset.id;
+
+
+          if (
+            confirm(
+              'Delete this book?'
+            )
+          ) {
+
+            state.books =
+              state.books.filter(
+                book =>
+                  book.id !== id
+              );
+
+            saveData(
+              'books',
+              state.books
+            );
+
+            showAdminDashboard();
+
+          }
+
+        };
+
+      });
+
   }
 
-  header {
 
-    width: 100%;
+  /* ================================
+     ADD BOOK
+  ================================= */
 
-    padding:
-      1rem 0.8rem;
+  function showAddBookForm() {
 
-    font-size: 1.25rem;
+    updateSidebarTitle(
+      'Add Book'
+    );
 
-    line-height: 1.4;
+    updateSidebarFooter();
+
+    renderNav('admin');
+
+    setActiveNav(
+      'Add Book'
+    );
+
+
+    mainContent.innerHTML = `
+
+      <h2 class="section-title">
+        Add New Book
+      </h2>
+
+      <form
+        id="add-book-form">
+
+        <label>
+          Book ID
+        </label>
+
+        <input
+          type="text"
+          id="book-id"
+          required
+          placeholder="Unique Book ID"
+        >
+
+        <label>
+          Title
+        </label>
+
+        <input
+          type="text"
+          id="book-title"
+          required
+          placeholder="Book Title"
+        >
+
+        <label>
+          Author
+        </label>
+
+        <input
+          type="text"
+          id="book-author"
+          required
+          placeholder="Author Name"
+        >
+
+        <label>
+          Price
+        </label>
+
+        <input
+          type="number"
+          id="book-price"
+          required
+          min="0"
+          step="0.01"
+          placeholder="Price"
+        >
+
+        <label>
+          Stock
+        </label>
+
+        <input
+          type="number"
+          id="book-stock"
+          required
+          min="0"
+          placeholder="Stock"
+        >
+
+        <button
+          class="primary"
+          type="submit">
+
+          Add Book
+
+        </button>
+
+        <p
+          class="message"
+          id="book-msg">
+        </p>
+
+      </form>
+
+    `;
+
+
+    document
+      .getElementById(
+        'add-book-form'
+      )
+      .onsubmit = e => {
+
+        e.preventDefault();
+
+
+        const id =
+          document
+            .getElementById(
+              'book-id'
+            )
+            .value
+            .trim();
+
+
+        const message =
+          document
+            .getElementById(
+              'book-msg'
+            );
+
+
+        if (
+          state.books.some(
+            book =>
+              book.id === id
+          )
+        ) {
+
+          message.textContent =
+            'Book ID already exists!';
+
+          return;
+        }
+
+
+        const title =
+          document
+            .getElementById(
+              'book-title'
+            )
+            .value
+            .trim();
+
+
+        const author =
+          document
+            .getElementById(
+              'book-author'
+            )
+            .value
+            .trim();
+
+
+        const price =
+          parseFloat(
+            document
+              .getElementById(
+                'book-price'
+              )
+              .value
+          );
+
+
+        const stock =
+          parseInt(
+            document
+              .getElementById(
+                'book-stock'
+              )
+              .value
+          );
+
+
+        state.books.push({
+
+          id: id,
+
+          title: title,
+
+          author: author,
+
+          price: price,
+
+          stock: stock
+
+        });
+
+
+        saveData(
+          'books',
+          state.books
+        );
+
+
+        message.textContent =
+          'Book added successfully!';
+
+        message.classList.add(
+          'success'
+        );
+
+
+        setTimeout(
+          showAdminDashboard,
+          1000
+        );
+
+      };
+
   }
 
-  .content-area {
 
-    display: block;
+  /* ================================
+     STUDENTS
+  ================================= */
 
-    width: 100%;
+  function showAllStudents() {
+
+    updateSidebarTitle(
+      'Students List'
+    );
+
+    updateSidebarFooter();
+
+    renderNav('admin');
+
+    setActiveNav(
+      'Students'
+    );
+
+
+    if (
+      state.students.length === 0
+    ) {
+
+      mainContent.innerHTML = `
+
+        <h2 class="section-title">
+          Students
+        </h2>
+
+        <p>
+          No students registered yet.
+        </p>
+
+      `;
+
+      return;
+    }
+
+
+    let html = `
+
+      <h2 class="section-title">
+        Students
+      </h2>
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Student ID</th>
+            <th>Contact</th>
+            <th>Class</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+    `;
+
+
+    state.students.forEach(
+      student => {
+
+        html += `
+
+          <tr>
+
+            <td>
+              ${student.id}
+            </td>
+
+            <td>
+              ${student.contact}
+            </td>
+
+            <td>
+              ${student.class}
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+    );
+
+
+    html += `
+
+        </tbody>
+
+      </table>
+
+    `;
+
+
+    mainContent.innerHTML =
+      html;
+
   }
 
-  nav.sidebar {
 
-    width: 100%;
+  /* ================================
+     ALL ISSUED BOOKS
+  ================================= */
 
-    min-width: 100%;
+  function showAllIssuedBooks() {
 
-    height: auto;
+    updateSidebarTitle(
+      'Issued Book Records'
+    );
 
-    padding: 0;
+    updateSidebarFooter();
 
-    display: block;
+    renderNav('admin');
 
-    box-shadow: none;
+    setActiveNav(
+      'All Issued Books'
+    );
+
+
+    if (
+      state.issuedBooks.length === 0
+    ) {
+
+      mainContent.innerHTML = `
+
+        <h2 class="section-title">
+          Issued Book Records
+        </h2>
+
+        <p>
+          No issued book records found.
+        </p>
+
+      `;
+
+      return;
+    }
+
+
+    let html = `
+
+      <h2 class="section-title">
+        Issued Book Records
+      </h2>
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Book Title</th>
+            <th>Student ID</th>
+            <th>Contact</th>
+            <th>Class</th>
+            <th>Issued On</th>
+            <th>Submitted On</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+    `;
+
+
+    state.issuedBooks.forEach(
+      record => {
+
+        const book =
+          state.books.find(
+            book =>
+              book.id === record.bookId
+          ) ||
+          {
+            title: 'Unknown'
+          };
+
+
+        const student =
+          state.students.find(
+            student =>
+              student.id ===
+              record.studentId
+          ) ||
+          {
+            contact: '-',
+            class: '-'
+          };
+
+
+        html += `
+
+          <tr>
+
+            <td>
+              ${book.title}
+            </td>
+
+            <td>
+              ${record.studentId}
+            </td>
+
+            <td>
+              ${student.contact}
+            </td>
+
+            <td>
+              ${student.class}
+            </td>
+
+            <td>
+              ${formatDateTime(
+                record.issueDate
+              )}
+            </td>
+
+            <td>
+              ${
+                record.returnDate
+                  ? formatDateTime(
+                      record.returnDate
+                    )
+                  : '-'
+              }
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+    );
+
+
+    html += `
+
+        </tbody>
+
+      </table>
+
+    `;
+
+
+    mainContent.innerHTML =
+      html;
+
   }
 
-  nav.sidebar h2 {
 
-    display: block;
+  /* ================================
+     STUDENT BROWSE
+  ================================= */
 
-    padding:
-      0.8rem 0.5rem;
+  function showStudentBrowse() {
 
-    margin: 0;
+    updateSidebarTitle(
+      'Browse Books'
+    );
 
-    font-size: 1.1rem;
+    updateSidebarFooter();
 
-    background: #2c3e50;
+    renderNav('student');
+
+    setActiveNav(
+      'Browse Books'
+    );
+
+
+    if (
+      state.books.length === 0
+    ) {
+
+      mainContent.innerHTML = `
+
+        <h2 class="section-title">
+          Browse Books
+        </h2>
+
+        <p>
+          No books available right now.
+        </p>
+
+      `;
+
+      return;
+    }
+
+
+    let html = `
+
+      <h2 class="section-title">
+        Browse Books
+      </h2>
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Title</th>
+            <th>Author</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Action</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+    `;
+
+
+    state.books.forEach(
+      book => {
+
+        const disabled =
+          book.stock <= 0
+            ? 'btn-disabled'
+            : '';
+
+
+        html += `
+
+          <tr>
+
+            <td>
+              ${book.title}
+            </td>
+
+            <td>
+              ${book.author}
+            </td>
+
+            <td>
+              ${book.price.toFixed(2)} RS
+            </td>
+
+            <td>
+              ${book.stock}
+            </td>
+
+            <td>
+
+              <button
+                class="
+                  btn-purchase
+                  sm-btn
+                  ${disabled}
+                "
+                data-id="${book.id}"
+                ${
+                  disabled
+                    ? 'disabled'
+                    : ''
+                }>
+
+                Purchase
+
+              </button>
+
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+    );
+
+
+    html += `
+
+        </tbody>
+
+      </table>
+
+    `;
+
+
+    mainContent.innerHTML =
+      html;
+
+
+    mainContent
+      .querySelectorAll(
+        '.btn-purchase'
+      )
+      .forEach(button => {
+
+        button.onclick = () => {
+
+          purchaseBook(
+            button.dataset.id
+          );
+
+        };
+
+      });
+
   }
 
-  ul.nav-links {
 
-    width: 100%;
+  /* ================================
+     PURCHASE BOOK
+  ================================= */
 
-    display: flex;
+  function purchaseBook(bookId) {
 
-    flex-direction: row;
+    const book =
+      state.books.find(
+        book =>
+          book.id === bookId
+      );
 
-    gap: 0;
 
-    overflow-x: auto;
+    if (
+      !book ||
+      book.stock <= 0
+    ) {
 
-    overflow-y: hidden;
+      alert(
+        'Book not currently available.'
+      );
 
-    -webkit-overflow-scrolling: touch;
+      return;
+    }
+
+
+    const alreadyIssued =
+      state.issuedBooks.find(
+        record =>
+
+          record.bookId === bookId &&
+
+          record.studentId ===
+            state.currentUser.id &&
+
+          !record.returnDate
+      );
+
+
+    if (alreadyIssued) {
+
+      alert(
+        'You already have this book issued.'
+      );
+
+      return;
+    }
+
+
+    book.stock--;
+
+
+    state.issuedBooks.push({
+
+      bookId: book.id,
+
+      studentId:
+        state.currentUser.id,
+
+      issueDate:
+        new Date().toISOString(),
+
+      returnDate: null
+
+    });
+
+
+    saveData(
+      'books',
+      state.books
+    );
+
+    saveData(
+      'issuedBooks',
+      state.issuedBooks
+    );
+
+
+    alert(
+      `Successfully purchased "${book.title}".`
+    );
+
+
+    showStudentBrowse();
+
   }
 
-  ul.nav-links li {
 
-    flex: 0 0 auto;
+  /* ================================
+     MY ISSUED BOOKS
+  ================================= */
 
-    border-top: none;
+  function showStudentIssuedBooks() {
+
+    updateSidebarTitle(
+      'My Issued Books'
+    );
+
+    updateSidebarFooter();
+
+    renderNav('student');
+
+    setActiveNav(
+      'My Issued Books'
+    );
+
+
+    const issued =
+      state.issuedBooks.filter(
+        record =>
+          record.studentId ===
+          state.currentUser.id
+      );
+
+
+    if (
+      issued.length === 0
+    ) {
+
+      mainContent.innerHTML = `
+
+        <h2 class="section-title">
+          My Issued Books
+        </h2>
+
+        <p>
+          You have no issued books.
+        </p>
+
+      `;
+
+      return;
+    }
+
+
+    let html = `
+
+      <h2 class="section-title">
+        My Issued Books
+      </h2>
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Title</th>
+            <th>Issued On</th>
+            <th>Submitted On</th>
+            <th>Action</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+    `;
+
+
+    issued.forEach(
+      record => {
+
+        const book =
+          state.books.find(
+            book =>
+              book.id ===
+              record.bookId
+          ) ||
+          {
+            title: 'Unknown'
+          };
+
+
+        html += `
+
+          <tr>
+
+            <td>
+              ${book.title}
+            </td>
+
+            <td>
+              ${formatDateTime(
+                record.issueDate
+              )}
+            </td>
+
+            <td>
+              ${
+                record.returnDate
+                  ? formatDateTime(
+                      record.returnDate
+                    )
+                  : '-'
+              }
+            </td>
+
+            <td>
+
+              ${
+                !record.returnDate
+
+                  ? `
+                    <button
+                      class="
+                        btn-submit-book
+                        sm-btn
+                      "
+                      data-id="${book.id}">
+
+                      Submit
+
+                    </button>
+                  `
+
+                  : `
+                    <span class="badge">
+                      Returned
+                    </span>
+                  `
+              }
+
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+    );
+
+
+    html += `
+
+        </tbody>
+
+      </table>
+
+    `;
+
+
+    mainContent.innerHTML =
+      html;
+
+
+    mainContent
+      .querySelectorAll(
+        '.btn-submit-book'
+      )
+      .forEach(button => {
+
+        button.onclick = () => {
+
+          submitBook(
+            button.dataset.id
+          );
+
+        };
+
+      });
+
   }
 
-  ul.nav-links li button {
 
-    width: auto;
+  /* ================================
+     SUBMIT BOOK
+  ================================= */
 
-    min-width: max-content;
+  function submitBook(bookId) {
 
-    padding:
-      0.8rem 1rem;
+    const index =
+      state.issuedBooks.findIndex(
+        record =>
 
-    font-size: 0.9rem;
+          record.bookId === bookId &&
 
-    text-align: center;
+          record.studentId ===
+            state.currentUser.id &&
 
-    white-space: nowrap;
+          !record.returnDate
+      );
+
+
+    if (index < 0) {
+
+      alert(
+        'No issued record found.'
+      );
+
+      return;
+    }
+
+
+    state.issuedBooks[
+      index
+    ].returnDate =
+      new Date().toISOString();
+
+
+    const book =
+      state.books.find(
+        book =>
+          book.id === bookId
+      );
+
+
+    if (book) {
+
+      book.stock++;
+
+    }
+
+
+    saveData(
+      'issuedBooks',
+      state.issuedBooks
+    );
+
+    saveData(
+      'books',
+      state.books
+    );
+
+
+    alert(
+      'Book submitted successfully.'
+    );
+
+
+    showStudentIssuedBooks();
+
   }
 
-  ul.nav-links li button:hover,
-  ul.nav-links li button.active {
 
-    transform: none;
+  /* ================================
+     LOGOUT
+  ================================= */
+
+  function logout() {
+
+    if (
+      confirm(
+        'Are you sure you want to logout?'
+      )
+    ) {
+
+      state.currentUser = null;
+
+      saveCurrentUser();
+
+      showGuestView();
+
+    }
+
   }
 
-  .sidebar-footer {
 
-    padding: 0.5rem;
+  /* ================================
+     DASHBOARD
+  ================================= */
 
-    font-size: 0.8rem;
+  function renderDashboard() {
 
-    background: #34495e;
+    if (
+      state.currentUser.type ===
+      'admin'
+    ) {
+
+      showAdminDashboard();
+
+    }
+
+    else if (
+      state.currentUser.type ===
+      'student'
+    ) {
+
+      showStudentBrowse();
+
+    }
+
   }
 
-  main.main-content {
 
-    width: 100%;
+  /* ================================
+     INITIALIZATION
+  ================================= */
 
-    padding:
-      1.2rem 0.9rem;
+  loadCurrentUser();
 
-    overflow-x: auto;
+
+  if (state.currentUser) {
+
+    renderDashboard();
+
+  } else {
+
+    showGuestView();
+
   }
 
-  h2.section-title {
-
-    font-size: 1.4rem;
-
-    margin-bottom: 1.2rem;
-  }
-
-  form {
-
-    width: 100%;
-
-    max-width: 100%;
-  }
-
-  input[type="text"],
-  input[type="password"],
-  input[type="email"],
-  input[type="number"],
-  select {
-
-    font-size: 16px;
-
-    padding: 0.75rem;
-
-    margin-bottom: 1rem;
-  }
-
-  button.primary {
-
-    font-size: 1rem;
-
-    padding: 0.8rem;
-  }
-
-  table {
-
-    min-width: 650px;
-
-    font-size: 0.85rem;
-  }
-
-  th,
-  td {
-
-    padding:
-      0.65rem 0.8rem;
-  }
-
-}
-
-
-/* ================================
-   VERY SMALL PHONE
-================================ */
-
-@media screen and (max-width: 380px) {
-
-  header {
-
-    font-size: 1.1rem;
-
-    padding:
-      0.9rem 0.5rem;
-  }
-
-  nav.sidebar h2 {
-
-    font-size: 1rem;
-  }
-
-  ul.nav-links li button {
-
-    padding:
-      0.7rem 0.8rem;
-
-    font-size: 0.82rem;
-  }
-
-  main.main-content {
-
-    padding:
-      1rem 0.7rem;
-  }
-
-  h2.section-title {
-
-    font-size: 1.25rem;
-  }
-
-}
+})();
